@@ -37,6 +37,9 @@
             overflow: hidden;
             position: relative;
             user-select: none; 
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
         }
 
         .bg-animate {
@@ -241,7 +244,7 @@
         }
     </style>
 </head>
-<body>
+<body oncontextmenu="return false;">
 
     <div class="bg-animate"></div>
 
@@ -279,7 +282,7 @@
     </div>
 
     <script>
-        // 🎵 গেমিং লেজার শ্যুট সাউন্ড ইফেক্ট সোর্স লিংক
+        // 🎵 গেমিং লেজার শ্যুট সাউন্ড ইফেক্ট
         const clickSound = new Audio("https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav");
         clickSound.volume = 0.4; 
 
@@ -288,33 +291,50 @@
             clickSound.play().catch(err => console.log("Audio playback blocked"));
         });
 
-        // 🚫 মাউসের রাইট-ক্লিক মেনু এবং ইন্সপেক্ট ব্লক
-        window.addEventListener('contextmenu', (e) => { e.preventDefault(); });
-        window.addEventListener('keydown', (e) => {
-            if (e.key === "F12" || (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "J" || e.key === "i" || e.key === "j")) || (e.ctrlKey && (e.key === "u" || e.key === "U"))) {
+        // 🚫 লোকাল ফাইল এবং লাইভ ডোমেন সব জায়গায় রাইট-ক্লিক পুরোপুরি লক (উইন্ডো লেভেল হার্ড লক)
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }, true);
+
+        // 🚫 কীবোর্ড শর্টকাট লক (F12, Ctrl+U, Ctrl+Shift+I, J)
+        document.addEventListener('keydown', function(e) {
+            if (e.key === "F12" || 
+                (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "J" || e.key === "i" || e.key === "j")) || 
+                (e.ctrlKey && (e.key === "u" || e.key === "U" || e.key === "s" || e.key === "S"))) {
                 e.preventDefault();
+                e.stopPropagation();
+                return false;
             }
-        });
+        }, true);
 
-        // 📊 গ্লোবাল কাউন্টার কনফিগারেশন (লিমিট ১০০)
-        const maxLimit = 100;
-        
-        // 🛑 ডিসকورد ওয়েব হুক লিংক
+        // ================= [ 🛠️ SERVER CONFIGURATION ] =================
+        const maxLimit = 100; 
         const discordWebhookURL = "https://discordapp.com/api/webhooks/1506649694816964628/l26dH7LB9gD5NaAd-5mtzq7CKpN9iZjVcZMNBFCz8t3raBlJnfwZmoeVpSJyclp-KAAa"; 
-
-        // ⚙️ সার্ভার অনলাইন/অফলাইন কন্ট্রোলার সুইচ 
         const isServerOnline = true; 
 
-        // ডোমেন/ইউআরএল ভিত্তিক ইউনিক লোকাল কি (যাতে ডোমেন পাল্টালে অটো রিসেট করতে সুবিধা হয়)
-        const storageCountKey = "nhe_global_counter_backup_" + window.location.hostname + window.location.pathname.replace(/[^a-zA-Z0-9]/g, "");
-        let currentCount = parseInt(localStorage.getItem(storageCountKey) || "0");
+        // 🔗 আপনার ফায়ারবেজ ডাটাবেজ লিংকটি নিচে সেট করে দেওয়া হয়েছে
+        const firebaseDatabaseURL = "https://nazim69x-92451-default-rtdb.firebaseio.com/"; 
+        // ===============================================================
 
-        // 🔄 গ্লোবাল ডিসকোর্ড চ্যানেল মেথড থেকে লাইভ কাউন্টার সিঙ্ক করার ট্রিক
-        function updateCounterDisplay() {
-            if (currentCount > maxLimit) currentCount = maxLimit;
-            document.getElementById("live-counter").innerText = currentCount + " / " + maxLimit;
+        const webPathKey = window.location.hostname + window.location.pathname.replace(/[^a-zA-Z0-9]/g, "");
+        const finalCounterEndpoint = `${firebaseDatabaseURL}counters/${webPathKey}.json`;
+
+        let currentCount = 0;
+
+        function fetchLiveDatabaseCounter() {
+            fetch(finalCounterEndpoint)
+            .then(res => res.json())
+            .then(data => {
+                currentCount = data !== null ? parseInt(data) : 0;
+                document.getElementById("live-counter").innerText = currentCount + " / " + maxLimit;
+            })
+            .catch(err => { console.error("DB Connection Waiting..."); });
         }
-        updateCounterDisplay();
+
+        // প্রতি ৩ সেকেন্ড পর পর ব্যাকগ্রাউন্ডে অটো সিঙ্ক হবে
+        setInterval(fetchLiveDatabaseCounter, 3000); 
+        fetchLiveDatabaseCounter();
 
         function showNotification(msg, isError = false) {
             const toast = document.getElementById("status-toast");
@@ -326,7 +346,6 @@
         }
 
         async function processTrialRequest() {
-            // 🛑 ১০০ লিমিট ফুল চেক লজিক
             if (currentCount >= maxLimit) {
                 showNotification("REGISTRATION FULL! LIMIT REACHED.", true);
                 return;
@@ -353,12 +372,10 @@
                 const ipRes = await fetch('https://api.ipify.org?format=json');
                 const ipData = await ipRes.json();
                 userIP = ipData.ip;
-            } catch(e) { console.log("IP fetch bypass"); }
+            } catch(e) {}
 
             const approveLink = "https://discord.com"; 
             const rejectLink = "https://discord.com";
-
-            // রিকোয়েস্ট সাবমিট করার পর লাইভ কাউন্টার আপডেট ট্র্যাক
             const nextRegNumber = currentCount + 1;
 
             const discordPayload = {
@@ -368,7 +385,7 @@
                     title: "🎁 NEW FREE 3-DAY TRIAL REQUEST 🎁",
                     color: 65382,
                     fields: [
-                        { name: "🎯 Target Player UID", value: `\`\`\`css\n${uidValue}\n\`\`\``, inline: false },
+                        { name: "🎯 Target Player UID", value: `\`\`\`css\n${uidValue}\n\`\`\`, inline: false },
                         { name: "📈 Global Register Sequence", value: `\`${nextRegNumber} / ${maxLimit}\``, inline: true },
                         { name: "🌐 Network IP", value: userIP, inline: true }
                     ],
@@ -391,13 +408,19 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(discordPayload)
             })
-            .then(res => {
+            .then(async res => {
                 if (!res.ok) throw new Error("Discord Rejected");
 
-                // ডিসকর্ডে সাকসেসফুল ডেটা গেলে কাউন্টার ১ বাড়বে
-                currentCount++;
-                localStorage.setItem(storageCountKey, currentCount);
-                updateCounterDisplay();
+                // ফায়ারবেজ রিয়েলটাইম ডাটাবেজে ভ্যালু আপডেট করা হচ্ছে
+                const updatedCountValue = currentCount + 1;
+                await fetch(finalCounterEndpoint, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(updatedCountValue)
+                });
+
+                currentCount = updatedCountValue;
+                document.getElementById("live-counter").innerText = currentCount + " / " + maxLimit;
 
                 let timeLeft = 10;
                 const timerElement = document.getElementById("timer-text");
@@ -409,15 +432,12 @@
                     if (timeLeft <= 0) {
                         clearInterval(countdown);
                         showNotification("TRIAL CLAIMED SUCCESSFULLY!");
-                        setTimeout(() => {
-                            location.reload(); 
-                        }, 1500);
+                        setTimeout(() => { location.reload(); }, 1500);
                     }
                 }, 1000);
 
             })
             .catch(err => {
-                console.error(err);
                 showNotification("SERVER CONFIG ERROR! TRY AGAIN.", true);
                 document.getElementById("form-container").style.display = "block";
                 document.getElementById("loader-screen").style.display = "none";
