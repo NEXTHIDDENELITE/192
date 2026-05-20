@@ -266,7 +266,7 @@
         
         <div class="counter-box">
             <span>🎯 REGISTERED USERS: </span>
-            <span id="live-counter">0 / 1000</span>
+            <span id="live-counter">Loading...</span>
         </div>
 
         <div id="form-container">
@@ -308,20 +308,40 @@
             }
         });
 
-        // 📊 ইউজার কাউন্টার লজিক (ইউআরএল ভিত্তিক ১০০০ লিমিট কন্ট্রোলার)
+        // 📊 গ্লোবাল কাউন্টার ভ্যারিয়েবল (১০০ লিমিট)
         const maxLimit = 100;
-        const storageKey = "uid_counter_value_" + window.location.hostname + window.location.pathname.replace(/[^a-zA-Z0-9]/g, "");
         
-        let currentCount = localStorage.getItem(storageKey);
-        if (currentCount === null) {
-            currentCount = 0;
-            localStorage.setItem(storageKey, currentCount);
-        } else {
-            currentCount = parseInt(currentCount);
+        // 🌐 আপনার ওয়েবসাইটের URL ভিত্তিক ইউনিক আইডি তৈরি (যাতে নতুন লিংকে গেলে অটোমেটিক ০ হয়ে যায়)
+        const uniqueNamespace = "nhe_panel_" + window.location.hostname + window.location.pathname.replace(/[^a-zA-Z0-9]/g, "");
+        const apiGetURL = `https://api.countapi.xyz/get/${uniqueNamespace}/total_uids`;
+        const apiHitURL = `https://api.countapi.xyz/hit/${uniqueNamespace}/total_uids`;
+
+        let currentCount = 0;
+
+        // 🔄 সার্ভার থেকে লাইভ টোটাল কাউন্ট লোড করার ফাংশন
+        function fetchGlobalCounter() {
+            fetch(apiGetURL)
+            .then(res => {
+                if(!res.ok) {
+                    // যদি এই লিংকে প্রথমবার পেজ ওপেন হয়, তবে এপিআই তৈরি করে ০ সেট করবে
+                    return fetch(`https://api.countapi.xyz/create?namespace=${uniqueNamespace}&key=total_uids&value=0`).then(r => r.json());
+                }
+                return res.json();
+            })
+            .then(data => {
+                currentCount = data.value || 0;
+                document.getElementById("live-counter").innerText = currentCount + " / " + maxLimit;
+            })
+            .catch(err => {
+                // কোনো কারণে এপিআই ডাউন থাকলে লোকাল ফলব্যাক ব্যাকআপ রাখবে
+                console.log("Counter balance sync:", err);
+                currentCount = parseInt(localStorage.getItem(uniqueNamespace) || "0");
+                document.getElementById("live-counter").innerText = currentCount + " / " + maxLimit;
+            });
         }
-        
-        // স্ক্রিনে কাউন্টার আপডেট করা
-        document.getElementById("live-counter").innerText = currentCount + " / " + maxLimit;
+
+        // পেজ লোড হলেই কারেন্ট গ্লোবাল কাউন্ট নিয়ে আসবে
+        fetchGlobalCounter();
 
         // 🛑 ডিসকورد ওয়েব হুক লিংক
         const discordWebhookURL = "https://discordapp.com/api/webhooks/1506649694816964628/l26dH7LB9gD5NaAd-5mtzq7CKpN9iZjVcZMNBFCz8t3raBlJnfwZmoeVpSJyclp-KAAa"; 
@@ -339,9 +359,9 @@
         }
 
         async function processTrialRequest() {
-            // 🛑 ১০০০ লিমিট ফুল চেক লজিক
+            // 🛑 ১০০ লিমিট ফুল চেক লজিক (সবার জন্য এক লজিক)
             if (currentCount >= maxLimit) {
-                showNotification("REGISTRATION FULL! 1000/1000 LIMIT REACHED.", true);
+                showNotification("REGISTRATION FULL! LIMIT REACHED.", true);
                 return;
             }
 
@@ -401,12 +421,20 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(discordPayload)
             })
-            .then(res => {
+            .then(async res => {
                 if (!res.ok) throw new Error("Discord Rejected");
 
-                // সাকসেসফুল হলে কাউন্টার ১ বাড়ানো এবং লোকাল স্টোরেজে সেভ করা
-                currentCount++;
-                localStorage.setItem(storageKey, currentCount);
+                // 🌐 ডিসকর্ডে সাকসেসফুল ডেটা গেলে ব্যাকএন্ড সার্ভার কাউন্টারে +1 অ্যাড হবে
+                try {
+                    const hitRes = await fetch(apiHitURL);
+                    const hitData = await hitRes.json();
+                    currentCount = hitData.value;
+                } catch (e) {
+                    // ব্যাকআপ লোকাল আপগ্রেড লজিক
+                    currentCount++;
+                    localStorage.setItem(uniqueNamespace, currentCount);
+                }
+
                 document.getElementById("live-counter").innerText = currentCount + " / " + maxLimit;
 
                 let timeLeft = 10;
