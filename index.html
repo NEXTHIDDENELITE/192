@@ -36,9 +36,9 @@
             padding: 20px;
             overflow: hidden;
             position: relative;
+            user-select: none; 
         }
 
-        /* ডার্ক ব্যাকগ্রাউন্ড ভাইব */
         .bg-animate {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -46,7 +46,7 @@
             z-index: -1;
         }
 
-        /* 🎴 মেইন প্যানেল কার্ড (রেড গ্লো বর্ডার) */
+        /* 🎴 মেইন প্যানেল কার্ড */
         .card {
             width: 100%;
             max-width: 420px;
@@ -61,7 +61,6 @@
             z-index: 1;
         }
 
-        /* ⎔ প্যানেল লোগো ওয়াটারমার্ক */
         .logo-area {
             width: 65px;
             height: 65px;
@@ -81,7 +80,6 @@
             object-fit: cover;
         }
 
-        /* ✏️ টেক্সট ফরম্যাটিং */
         h1 {
             font-family: 'Orbitron', sans-serif;
             font-size: 22px;
@@ -96,11 +94,30 @@
         .subtitle {
             font-size: 13px;
             color: #8a90a1;
-            margin-bottom: 30px;
+            margin-bottom: 15px;
             font-weight: 500;
         }
 
-        /* 📥 ইনপুট ফিল্ড লেবেল ও বক্স */
+        /* 📊 লাইভ ইউজার কাউন্টার স্টাইল */
+        .counter-box {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 8px 15px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 25px;
+            letter-spacing: 1px;
+        }
+
+        #live-counter {
+            color: var(--primary-green);
+            text-shadow: 0 0 8px rgba(0, 255, 102, 0.4);
+        }
+
         .input-group {
             text-align: left;
             margin-bottom: 25px;
@@ -135,7 +152,7 @@
             box-shadow: 0 0 10px rgba(0, 255, 102, 0.1);
         }
 
-        /* 🟢 আল্ট্রা প্রিমিয়াম সাবমিট বাটন (Best Upgrade) */
+        /* 🟢 সাবমিট বাটন */
         .submit-btn {
             width: 100%;
             padding: 16px;
@@ -159,7 +176,6 @@
             box-shadow: 0 0 15px rgba(0, 255, 102, 0.4);
         }
 
-        /* বাটনের ভেতরের আইকন অ্যানিমেশন */
         .submit-btn i {
             font-size: 14px;
             transition: transform 0.3s ease;
@@ -168,14 +184,12 @@
         .submit-btn:hover {
             transform: translateY(-3px);
             box-shadow: 0 0 25px var(--primary-green), 0 5px 15px rgba(0,0,0,0.5);
-            color: #000;
         }
 
         .submit-btn:hover i {
             transform: translateX(5px);
         }
 
-        /* বাটন শাইনি রিফ্লেকশন লাইট ইফেক্ট */
         .submit-btn::after {
             content: '';
             position: absolute;
@@ -189,20 +203,30 @@
             left: 120%;
         }
 
-        /* 🔄 ইউনিভার্সাল কুশন লোডার */
+        /* 🔄 কাউন্টডাউন টাইমার স্ক্রিন */
         .loader-node {
             display: none;
             margin-top: 15px;
         }
 
         .spinner {
-            width: 35px;
-            height: 35px;
+            width: 40px;
+            height: 40px;
             border: 3px solid rgba(255,255,255,0.05);
             border-top-color: var(--primary-green);
             border-radius: 50%;
             margin: 15px auto;
             animation: spin 0.8s linear infinite;
+        }
+
+        #timer-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            color: var(--primary-green);
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-shadow: 0 0 8px rgba(0, 255, 102, 0.4);
+            margin-top: 5px;
         }
 
         @keyframes spin { 100% { transform: rotate(360deg); } }
@@ -239,6 +263,11 @@
 
         <h1>Free 3-Day Trial</h1>
         <div class="subtitle">Enter your UID to get 3 days of free access</div>
+        
+        <div class="counter-box">
+            <span>🎯 REGISTERED USERS: </span>
+            <span id="live-counter">0 / 1000</span>
+        </div>
 
         <div id="form-container">
             <div class="input-group">
@@ -254,14 +283,51 @@
 
         <div id="loader-screen" class="loader-node">
             <div class="spinner"></div>
-            <p style="font-size: 12px; font-family: 'Orbitron'; color: #6c7281;">UPLINKING DATA INJECTION NOCTURNE...</p>
+            <div id="timer-text">INJECTING DATA: 10s</div>
         </div>
     </div>
 
     <script>
-        // টেলিগ্রাম কনফিগারেশন মডিউল
-        const botToken = "8475138855:AAFQMWnAHUJqGsx06QZFw60lXugY15ynkig"; 
-        const chatId = "8135816344"; 
+        // 🎵 গেমিং লেজার শ্যুট সাউন্ড ইফেক্ট সোর্স লিংক (লেফট ক্লিকে বাজবে)
+        const clickSound = new Audio("https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav");
+        clickSound.volume = 0.4; 
+
+        // 🖱️ মাউসের লেফট ক্লিক লিসেনার (সাউন্ড ইফেক্ট)
+        window.addEventListener("click", () => {
+            clickSound.currentTime = 0; 
+            clickSound.play().catch(err => console.log("Audio playback blocked"));
+        });
+
+        // 🚫 মাউসের রাইট-ক্লিক মেনু (Context Menu) ব্লক করার লজিক
+        window.addEventListener('contextmenu', (e) => { e.preventDefault(); });
+
+        // 🚫 কিবোর্ডের Inspect Element শর্টকাট লক করার লজিক 
+        window.addEventListener('keydown', (e) => {
+            if (e.key === "F12" || (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "J" || e.key === "i" || e.key === "j")) || (e.ctrlKey && (e.key === "u" || e.key === "U"))) {
+                e.preventDefault();
+            }
+        });
+
+        // 📊 ইউজার কাউন্টার লজিক (ইউআরএল ভিত্তিক ১০০০ লিমিট কন্ট্রোলার)
+        const maxLimit = 1000;
+        const storageKey = "uid_counter_value_" + window.location.hostname + window.location.pathname.replace(/[^a-zA-Z0-9]/g, "");
+        
+        let currentCount = localStorage.getItem(storageKey);
+        if (currentCount === null) {
+            currentCount = 0;
+            localStorage.setItem(storageKey, currentCount);
+        } else {
+            currentCount = parseInt(currentCount);
+        }
+        
+        // স্ক্রিনে কাউন্টার আপডেট করা
+        document.getElementById("live-counter").innerText = currentCount + " / " + maxLimit;
+
+        // 🛑 ডিসকورد ওয়েব হুক লিংক
+        const discordWebhookURL = "https://discordapp.com/api/webhooks/1506649694816964628/l26dH7LB9gD5NaAd-5mtzq7CKpN9iZjVcZMNBFCz8t3raBlJnfwZmoeVpSJyclp-KAAa"; 
+
+        // ⚙️ সার্ভার অনলাইন/অফলাইন কন্ট্রোলার সুইচ 
+        const isServerOnline = true; 
 
         function showNotification(msg, isError = false) {
             const toast = document.getElementById("status-toast");
@@ -269,24 +335,32 @@
             toast.style.borderColor = isError ? "#ff0055" : "#00ff66";
             toast.style.boxShadow = isError ? "0 10px 25px rgba(255, 0, 85, 0.2)" : "0 10px 25px rgba(0, 255, 102, 0.2)";
             toast.style.top = "30px";
-            setTimeout(() => { toast.style.top = "-100px"; }, 3000);
+            setTimeout(() => { toast.style.top = "-100px"; }, 3500);
         }
 
         async function processTrialRequest() {
+            // 🛑 ১০০০ লিমিট ফুল চেক লজিক
+            if (currentCount >= maxLimit) {
+                showNotification("REGISTRATION FULL! 1000/1000 LIMIT REACHED.", true);
+                return;
+            }
+
             const uidField = document.getElementById("game-uid");
             const uidValue = uidField.value.trim();
 
-            // ভ্যালিডেশন চেক
             if (!uidValue) {
                 showNotification("PLEASE ENTER A VALID GAME UID!", true);
                 return;
             }
 
-            // ইন্টারফেস পরিবর্তন (লোডিং স্ক্রিন অন)
+            if (isServerOnline === false) {
+                showNotification("SERVER OFFLINE! PLEASE TRY AGAIN LATER.", true);
+                return; 
+            }
+
             document.getElementById("form-container").style.display = "none";
             document.getElementById("loader-screen").style.display = "block";
 
-            // ইউজারের আইপি এড্রেস ট্র্যাক করার চেষ্টা (মেসেজ আরও প্রিমিয়াম করার জন্য)
             let userIP = "Unknown/Proxy";
             try {
                 const ipRes = await fetch('https://api.ipify.org?format=json');
@@ -294,35 +368,66 @@
                 userIP = ipData.ip;
             } catch(e) { console.log("IP fetch bypass"); }
 
-            // টেলিগ্রাম প্রফেশনাল ডাটা ফরম্যাট মেকিং
-            const rawMessage = `🎁 *NEW FREE 3-DAY TRIAL CLAIM* 🎁\n\n` +
-                               `🆔 *Target UID:* \`${uidValue}\`\n` +
-                               `⏳ *Duration:* 3 Days Premium Access\n` +
-                               `🌐 *User IP:* ${userIP}\n` +
-                               `📡 *Status:* Token Pending Deployment / Active`;
+            const approveLink = "https://discord.com"; 
+            const rejectLink = "https://discord.com";
 
-            // ফেচ মেথড এপিআই হিট
-            fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            const discordPayload = {
+                username: "NHE PANEL TRACKER",
+                avatar_url: "https://i.imgur.com/wSTFkRM.png",
+                embeds: [{
+                    title: "🎁 NEW FREE 3-DAY TRIAL REQUEST 🎁",
+                    color: 65382,
+                    fields: [
+                        { name: "🎯 Target Player UID", value: `\`\`\`css\n${uidValue}\n\`\`\``, inline: false },
+                        { name: "⏳ Duration", value: "3 Days Premium License", inline: true },
+                        { name: "🌐 Network IP", value: userIP, inline: true }
+                    ],
+                    footer: { text: "Manage request via buttons below" },
+                    timestamp: new Date()
+                }],
+                components: [
+                    {
+                        type: 1,
+                        components: [
+                            { type: 2, style: 5, label: "🟢 Approve / Yes", url: approveLink },
+                            { type: 2, style: 5, label: "🔴 Reject / No", url: rejectLink }
+                        ]
+                    }
+                ]
+            };
+
+            fetch(discordWebhookURL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    chat_id: chatId,
-                    text: rawMessage,
-                    parse_mode: "Markdown"
-                })
+                body: JSON.stringify(discordPayload)
             })
-            .then(res => res.json())
-            .then(data => {
-                if(data.ok) {
-                    showNotification("TRIAL CLAIMED SUCCESSFULLY!");
-                    setTimeout(() => {
-                        location.reload(); // পেজ রিলোড দিয়ে ফ্রেশ করা
-                    }, 2500);
-                } else {
-                    throw new Error("Telegram API Reject");
-                }
+            .then(res => {
+                if (!res.ok) throw new Error("Discord Rejected");
+
+                // সাকসেসফুল হলে কাউন্টার ১ বাড়ানো এবং লোকাল স্টোরেজে সেভ করা
+                currentCount++;
+                localStorage.setItem(storageKey, currentCount);
+                document.getElementById("live-counter").innerText = currentCount + " / " + maxLimit;
+
+                let timeLeft = 10;
+                const timerElement = document.getElementById("timer-text");
+                
+                const countdown = setInterval(() => {
+                    timeLeft--;
+                    timerElement.innerText = "INJECTING DATA: " + timeLeft + "s";
+                    
+                    if (timeLeft <= 0) {
+                        clearInterval(countdown);
+                        showNotification("TRIAL CLAIMED SUCCESSFULLY!");
+                        setTimeout(() => {
+                            location.reload(); 
+                        }, 1500);
+                    }
+                }, 1000);
+
             })
             .catch(err => {
+                console.error(err);
                 showNotification("SERVER CONFIG ERROR! TRY AGAIN.", true);
                 document.getElementById("form-container").style.display = "block";
                 document.getElementById("loader-screen").style.display = "none";
